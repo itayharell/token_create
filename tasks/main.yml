@@ -1,0 +1,35 @@
+# tasks of token creation
+---
+- name: verify that token_name is valid
+  fail:
+    msg: token_name is nod defined
+  when: token_name is not defined
+- name: verify that project_name is valid
+  fail:
+    msg: project_name is not defined
+  when: project_name is not defined
+- name: verify that full_index is valid
+  fail:
+    msg: full_index is not defined
+  when: full_index is not defined
+- name: create a HEC token
+  run_once: true
+  delegate_to: 127.0.0.1
+  command: uuidgen -t
+  register: tokenout
+- name: save token
+  set_fact:
+    HECtoken: "{{ tokenout.stdout }}"
+- name: create inputs.conf file
+  become: true
+  ini_file:
+    path: "/splunk/splunk/etc/master-apps/{{ project_name }}/local/inputs.conf"
+    section: "http://{{ token_name }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    owner: splunk
+    group: splunk
+  with_items:
+    - {option: disabled, value: 0}
+    - {option: index, value: "{{ full_index }}"}
+    - {option: token, value: "{{ HECtoken }}"}
